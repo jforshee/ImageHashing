@@ -4,3 +4,7 @@ obj
 
 # mstest test results
 TestResults
+
+# Stupid files that should never be included
+*.suo
+*.vcxproj.user
