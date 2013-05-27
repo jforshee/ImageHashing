@@ -11,7 +11,7 @@ namespace ImageHashing
     /// 
     /// Credit for the AverageHash implementation to David Oftedal of the University of Oslo.
     /// </summary>
-    public class ImageHashing
+    public static class ImageHashing
     {
         #region Private constants and utility methods
         /// <summary>
@@ -55,37 +55,40 @@ namespace ImageHashing
         /// <returns>The hash of the image.</returns>
         public static ulong AverageHash(Image image)
         {
-            // Squeeze the image into an 8x8 canvas
-            Bitmap squeezed = new Bitmap(8, 8, PixelFormat.Format32bppRgb);
-            Graphics canvas = Graphics.FromImage(squeezed);
-            canvas.CompositingQuality = CompositingQuality.HighQuality;
-            canvas.InterpolationMode = InterpolationMode.HighQualityBilinear;
-            canvas.SmoothingMode = SmoothingMode.HighQuality;
-            canvas.DrawImage(image, 0, 0, 8, 8);
-
-            // Reduce colors to 6-bit grayscale and calculate average color value
-            byte[] grayscale = new byte[64];
-            uint averageValue = 0;
-            for (int y = 0; y < 8; y++)
-                for (int x = 0; x < 8; x++)
-                {
-                    uint pixel = (uint)squeezed.GetPixel(x, y).ToArgb();
-                    uint gray = (pixel & 0x00ff0000) >> 16;
-                    gray += (pixel & 0x0000ff00) >> 8;
-                    gray += (pixel & 0x000000ff);
-                    gray /= 12;
-
-                    grayscale[x + (y * 8)] = (byte)gray;
-                    averageValue += gray;
-                }
-            averageValue /= 64;
-
-            // Compute the hash: each bit is a pixel
-            // 1 = higher than average, 0 = lower than average
             ulong hash = 0;
-            for (int i = 0; i < 64; i++)
-                if (grayscale[i] >= averageValue)
-                    hash |= (1UL << (63 - i));
+
+            // Squeeze the image into an 8x8 canvas
+            using(Bitmap squeezed = new Bitmap(8, 8, PixelFormat.Format32bppRgb))
+            using (Graphics canvas = Graphics.FromImage(squeezed))
+            {
+                canvas.CompositingQuality = CompositingQuality.HighQuality;
+                canvas.InterpolationMode = InterpolationMode.HighQualityBilinear;
+                canvas.SmoothingMode = SmoothingMode.HighQuality;
+                canvas.DrawImage(image, 0, 0, 8, 8);
+
+                // Reduce colors to 6-bit grayscale and calculate average color value
+                byte[] grayscale = new byte[64];
+                uint averageValue = 0;
+                for (int y = 0; y < 8; y++)
+                    for (int x = 0; x < 8; x++)
+                    {
+                        uint pixel = (uint)squeezed.GetPixel(x, y).ToArgb();
+                        uint gray = (pixel & 0x00ff0000) >> 16;
+                        gray += (pixel & 0x0000ff00) >> 8;
+                        gray += (pixel & 0x000000ff);
+                        gray /= 12;
+
+                        grayscale[x + (y * 8)] = (byte)gray;
+                        averageValue += gray;
+                    }
+                averageValue /= 64;
+
+                // Compute the hash: each bit is a pixel
+                // 1 = higher than average, 0 = lower than average
+                for (int i = 0; i < 64; i++)
+                    if (grayscale[i] >= averageValue)
+                        hash |= (1UL << (63 - i));
+            }
 
             return hash;
         }
@@ -97,8 +100,10 @@ namespace ImageHashing
         /// <returns>The hash of the input file's image content.</returns>
         public static ulong AverageHash(String path)
         {
-            Bitmap bmp = new Bitmap(path);
-            return AverageHash(bmp);
+            using (Bitmap bmp = new Bitmap(path))
+            {
+                return AverageHash(bmp);
+            }
         }
 
         /// <summary>
